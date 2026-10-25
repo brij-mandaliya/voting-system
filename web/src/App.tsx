@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { useAuth } from "./contexts/Auth";
 import Login from "./pages/Login";
@@ -17,8 +17,10 @@ import { Spinner } from "./components/Spinner";
 
 function Guard({ children, adminOnly = false }: { children: React.ReactElement; adminOnly?: boolean }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <Spinner />;
-  if (!user) return <Navigate to="/login" replace />;
+  // keep where they were going (e.g. an invite link) so sign-in can return there
+  if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (adminOnly && user.role !== "ADMIN") return <Navigate to="/rooms" replace />;
   return <Shell>{children}</Shell>;

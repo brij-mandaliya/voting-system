@@ -11,7 +11,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
         {children}
         <p className="mt-6 text-[13px] leading-relaxed text-ink-500">
-          Sessions use secure, HTTP-only cookies. A temporary password must be replaced at first sign-in.
+          Sessions use secure, HTTP-only cookies. Nobody else ever sees your password.
         </p>
       </main>
     </div>

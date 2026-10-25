@@ -18,6 +18,18 @@ const envSchema = z.object({
    * subnet or a hop count ("1"); never "true" on an internet-facing API.
    */
   TRUST_PROXY: z.string().default("loopback"),
+  /**
+   * Sign in with Google (OpenID Connect). When both are set, attendees sign in
+   * with the Google account matching their imported email and get no password.
+   */
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  /**
+   * Public origin of the app as users open it (scheme + host, no trailing
+   * slash). Google redirects back to `${PUBLIC_URL}/api/auth/google/callback`.
+   * Defaults to WEB_ORIGIN.
+   */
+  PUBLIC_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -38,3 +50,6 @@ export function trustProxySetting(): boolean | number | string {
   if (/^\d+$/.test(v)) return Number(v);
   return v;
 }
+
+export const googleEnabled = () => Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+export const publicUrl = () => (env.PUBLIC_URL ?? env.WEB_ORIGIN).replace(/\/+$/, "");

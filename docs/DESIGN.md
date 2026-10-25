@@ -115,7 +115,7 @@ Round:     PENDING --open--> OPEN --pause--> PAUSED --resume--> OPEN
 
 Auth: `POST /auth/login`, `POST /auth/logout`, `POST /auth/logout-all`, `POST /auth/change-password`, `GET /auth/me`
 Participants (admin): `GET/POST /participants`, `PATCH /participants/:id` (edit/status/soft-delete/team), `POST /participants/:id/reset-password`, `POST /participants/import/preview` (multipart), `POST /participants/import/commit`, `GET /participants/import/template` (csv/xlsx), `GET /participants/credentials-sheet`
-Teams: `GET/POST /teams`, `PATCH/DELETE /teams/:id`
+Teams: `GET/POST /teams`, `PATCH/DELETE /teams/:id`, `POST /teams/import/preview|commit` (multipart CSV, optional `roomId`), `GET /teams/import/template`
 Rooms: `GET/POST /rooms`, `GET/PATCH/DELETE /rooms/:id`, `POST /rooms/:id/status`, `POST /rooms/:id/duplicate`, `POST /rooms/:id/join-code/regenerate|disable`, `POST /rooms/join {code}`
 Room members: `GET/PUT /rooms/:id/members` (bulk set), room teams: `GET/PUT /rooms/:id/teams`
 Categories: `GET/POST /rooms/:id/categories`, `PATCH/DELETE /categories/:id`, `POST /rooms/:id/categories/reorder`, `POST /rooms/:id/config/new-version`

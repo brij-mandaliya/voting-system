@@ -73,8 +73,12 @@ export default function Participants() {
   const create = useMutation({
     mutationFn: () => api("/participants", { body: { ...form, teamId: form.teamId || null } }),
     onSuccess: (res: any) => {
-      setTemp({ name: res.participant.name, username: res.participant.username, email: res.participant.email, temporaryPassword: res.temporaryPassword });
-      toast("Participant created", "success");
+      if (res.temporaryPassword) {
+        setTemp({ name: res.participant.name, username: res.participant.username, email: res.participant.email, temporaryPassword: res.temporaryPassword });
+        toast("Participant created", "success");
+      } else {
+        toast(`Participant created. ${res.participant.name} signs in with Google using ${res.participant.email}`, "success");
+      }
       setForm({ name: "", username: "", email: "", role: "PARTICIPANT", teamId: "" });
       qc.invalidateQueries({ queryKey: ["participants"] });
     },

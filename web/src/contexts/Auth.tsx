@@ -8,6 +8,8 @@ export interface AuthUser {
   email: string;
   role: "ADMIN" | "MODERATOR" | "PARTICIPANT";
   mustChangePassword: boolean;
+  /** false: signs in with Google only and may set a first password */
+  hasPassword: boolean;
   teamId: string | null;
 }
 
@@ -15,7 +17,7 @@ interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
   refresh: () => Promise<void>;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
 
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (identifier: string, password: string) => {
     const { user } = await api<{ user: AuthUser }>("/auth/login", { body: { identifier, password } });
     setUser(user);
+    return user;
   }, []);
 
   const logout = useCallback(async () => {

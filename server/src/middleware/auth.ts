@@ -45,6 +45,7 @@ export async function attachUser(req: Request, res: Response, next: NextFunction
     role: session.user.role as Role,
     status: session.user.status,
     mustChangePassword: session.user.mustChangePassword,
+    hasPassword: session.user.hasPassword,
     teamId: session.user.teamId,
   };
   next();
@@ -56,7 +57,14 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
 }
 
 /** Auth endpoints reachable while a temporary password is still in place. */
-const PASSWORD_CHANGE_ALLOWED = new Set(["/auth/me", "/auth/csrf", "/auth/change-password", "/auth/logout", "/health"]);
+const PASSWORD_CHANGE_ALLOWED = new Set([
+  "/auth/me",
+  "/auth/csrf",
+  "/auth/providers",
+  "/auth/change-password",
+  "/auth/logout",
+  "/health",
+]);
 
 /** Server-side enforcement of mustChangePassword (the UI redirect alone is bypassable). */
 export function requirePasswordChanged(req: Request, _res: Response, next: NextFunction) {

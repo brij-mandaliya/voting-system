@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/Auth";
 import { Button, Card, ErrorBox, LabelledInput } from "../components/ui";
 import { AuthLayout } from "../components/AuthLayout";
 import { IconCheck, IconEye, IconEyeOff, } from "../components/icons";
 import { api, ApiError } from "../lib/api";
+import { Spinner } from "../components/Spinner";
 
 export default function ChangePassword() {
-  const { user, refresh } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const navigate = useNavigate();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -15,15 +16,21 @@ export default function ChangePassword() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // forced: a temporary password must be replaced; first: a Google-only account
+  // adds a password (no current one to confirm); otherwise an ordinary change
+  const mode = user?.mustChangePassword ? "forced" : user && !user.hasPassword ? "first" : "change";
+  const home = user?.role === "ADMIN" ? "/admin" : "/rooms";
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (next.length < 10) return setError("New password must be at least 10 characters");
     setBusy(true);
     try {
-      await api("/auth/change-password", { body: { currentPassword: current, newPassword: next } });
+      if (mode === "first") await api("/auth/set-password", { body: { newPassword: next } });
+      else await api("/auth/change-password", { body: { currentPassword: current, newPassword: next } });
       await refresh();
-      navigate(user?.role === "ADMIN" ? "/admin" : "/rooms");
+      navigate(home);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not change password");
     } finally {
@@ -39,29 +46,41 @@ export default function ChangePassword() {
   ].filter(Boolean).length;
   const strengthLabel = ["Too short", "Getting there", "Good", "Strong", "Excellent"][strength];
 
+  if (loading) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  const copy = {
+    forced: {
+      title: "Set a new password",
+      body: `Welcome, ${user.name.split(" ")[0]}. Your account uses a temporary password. Choose a permanent one to continue.`,
+    },
+    first: {
+      title: "Add a password",
+      body: "You sign in with Google. A password is optional: it lets you also sign in with your email and password.",
+    },
+    change: { title: "Change password", body: "Other devices are signed out after the change." },
+  }[mode];
+
   return (
     <AuthLayout>
       <div className="mb-5">
-        <h1 className="text-[22px] font-semibold leading-tight text-ink-950">
-          Set a new password
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-500">
-          {user?.name ? `Welcome, ${user.name.split(" ")[0]}. ` : ""}
-          Your account uses a temporary password. Choose a permanent one to continue.
-        </p>
+        <h1 className="text-[22px] font-semibold leading-tight text-ink-950">{copy.title}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-ink-500">{copy.body}</p>
       </div>
 
       <Card className="p-5 sm:p-6">
         <form onSubmit={submit} className="space-y-4">
-          <LabelledInput
-            label="Temporary password"
-            type="password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            required
-            autoComplete="current-password"
-            placeholder="Enter the password you were given"
-          />
+          {mode !== "first" && (
+            <LabelledInput
+              label={mode === "forced" ? "Temporary password" : "Current password"}
+              type="password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder={mode === "forced" ? "Enter the password you were given" : "Enter your current password"}
+            />
+          )}
           <div>
             <LabelledInput
               label="New password"
@@ -128,6 +147,11 @@ export default function ChangePassword() {
           </Button>
         </form>
       </Card>
+      {mode !== "forced" && (
+        <Link to={home} className="mt-4 inline-block text-sm font-medium text-ink-700 hover:text-ink-950">
+          Cancel
+        </Link>
+      )}
     </AuthLayout>
   );
 }

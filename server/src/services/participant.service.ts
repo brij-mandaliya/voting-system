@@ -32,16 +32,14 @@ export const participantService = {
     const email = sanitizeText(input.email).toLowerCase();
     await assertUnique(username, email);
 
-    const tempPassword = authService.generateTemporaryPassword();
-    const passwordHash = await authService.hashPassword(tempPassword);
+    const { temporaryPassword: tempPassword, data: credentials } = await authService.initialCredentials(input.role as never);
     const user = await userRepo.create({
       name: sanitizeText(input.name),
       username,
       email,
       role: input.role as never,
       teamId: input.teamId ?? null,
-      passwordHash,
-      mustChangePassword: true,
+      ...credentials,
     });
     audit({
       actorId,
@@ -119,7 +117,7 @@ export const participantService = {
     if (!user) throw notFound("Participant not found");
     const tempPassword = authService.generateTemporaryPassword();
     const passwordHash = await authService.hashPassword(tempPassword);
-    await userRepo.update(id, { passwordHash, mustChangePassword: true });
+    await userRepo.update(id, { passwordHash, mustChangePassword: true, hasPassword: true });
     await sessionRepo.deleteAllForUser(id);
     clearLockout(user.username, user.email); // a locked-out participant can sign in right away
     audit({ actorId, action: "participant.reset_password", entityType: "user", entityId: id, ip });
@@ -227,33 +225,33 @@ export const participantService = {
       throw badRequest(`All-or-nothing: file has ${preview.errorCount} invalid rows`, preview.rows);
     }
     const created: TempCredential[] = [];
+    let committed = 0;
     for (const row of validRows) {
       // re-check uniqueness (concurrent writes since preview)
       const existing = await userRepo.findByUsername(row.username);
       const existingEmail = await userRepo.findByEmail(row.email);
       if (existing || existingEmail) continue;
-      const tempPassword = authService.generateTemporaryPassword();
-      const passwordHash = await authService.hashPassword(tempPassword);
+      const { temporaryPassword, data: credentials } = await authService.initialCredentials(row.role as never);
       await userRepo.create({
         name: row.name,
         username: row.username,
         email: row.email,
         role: row.role as never,
         teamId: row.teamId,
-        passwordHash,
-        mustChangePassword: true,
+        ...credentials,
       });
-      created.push({ username: row.username, email: row.email, name: row.name, temporaryPassword: tempPassword });
+      committed++;
+      if (temporaryPassword) created.push({ username: row.username, email: row.email, name: row.name, temporaryPassword });
     }
     audit({
       actorId,
       action: "participant.bulk_import",
       entityType: "import",
       entityId: filename,
-      after: { committed: created.length, skipped: preview.errorCount, mode: allOrNothing ? "all_or_nothing" : "valid_only" },
+      after: { committed, skipped: preview.errorCount, mode: allOrNothing ? "all_or_nothing" : "valid_only" },
       ip,
     });
-    return { committed: created.length, skipped: preview.errorCount, credentials: created };
+    return { committed, skipped: preview.errorCount, credentials: created };
   },
 
   /** Credentials sheet: one-time download of generated temp passwords. */

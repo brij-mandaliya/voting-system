@@ -8,6 +8,8 @@ export interface AuthUser {
   role: User["role"];
   status: User["status"];
   mustChangePassword: boolean;
+  /** false: Google-only account, can set a first password without a current one */
+  hasPassword: boolean;
   teamId: string | null;
 }
 

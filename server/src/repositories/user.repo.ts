@@ -23,6 +23,22 @@ export const userRepo = {
   findByEmail(email: string) {
     return prisma.user.findFirst({ where: { email, deletedAt: null } });
   },
+  /**
+   * Bulk lookup for imports. Deleted accounts are included so their reserved
+   * username/email can be reported before a create fails on the unique index.
+   */
+  findManyByIdentities(usernames: string[], emails: string[]) {
+    if (usernames.length === 0 && emails.length === 0) return Promise.resolve([]);
+    return prisma.user.findMany({
+      where: {
+        OR: [
+          ...(usernames.length ? [{ username: { in: usernames, mode: "insensitive" as const } }] : []),
+          ...(emails.length ? [{ email: { in: emails, mode: "insensitive" as const } }] : []),
+        ],
+      },
+      include: { team: { select: { id: true, name: true } } },
+    });
+  },
   list() {
     return prisma.user.findMany({
       where: { deletedAt: null },
@@ -47,6 +63,10 @@ export const userRepo = {
     });
   },
   /** Compare-and-set: only replaces the hash if it is still `expected` (a concurrent change wins). */
+  /** Compare-and-set so two concurrent first-password requests can't both win. */
+  setFirstPassword(id: string, passwordHash: string) {
+    return prisma.user.updateMany({ where: { id, hasPassword: false }, data: { passwordHash, hasPassword: true } });
+  },
   replacePasswordHashIf(id: string, expected: string, passwordHash: string) {
     return prisma.user.updateMany({ where: { id, passwordHash: expected }, data: { passwordHash } });
   },

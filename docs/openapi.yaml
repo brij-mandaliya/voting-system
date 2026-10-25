@@ -70,6 +70,42 @@ paths:
       responses:
         "200": { description: OK }
         "400": { description: policy failure }
+  /auth/providers:
+    get:
+      tags: [auth]
+      summary: Sign-in methods this server offers
+      responses:
+        "200": { description: "{ google: boolean }" }
+  /auth/google:
+    get:
+      tags: [auth]
+      summary: Start Sign in with Google (browser navigation, not XHR)
+      parameters:
+        - { name: next, in: query, schema: { type: string }, description: "same-origin path to return to" }
+      responses:
+        "302": { description: "to Google's consent screen; sets a 10-minute google_oauth cookie (state, nonce, PKCE verifier)" }
+  /auth/google/callback:
+    get:
+      tags: [auth]
+      summary: Google redirects back here; signs in the account registered with the verified email
+      responses:
+        "302": { description: "to `next` with a session cookie, or to /login?error=not_registered|email_unverified|google_expired|google_cancelled|google_failed" }
+  /auth/set-password:
+    post:
+      tags: [auth]
+      summary: Add a first password to a Google-only account (no current password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword: { type: string, minLength: 10 }
+      responses:
+        "200": { description: OK; other sessions are signed out }
+        "409": { description: account already has a password }
   /auth/reset:
     post:
       tags: [auth]
@@ -131,6 +167,26 @@ paths:
       responses:
         "200": { description: deleted }
         "409": { description: referenced }
+  /teams/import/preview:
+    post:
+      tags: [teams]
+      summary: Dry-run a bulk team CSV (multipart; optional roomId or newRoomName; per-row report with errors and auto-fix notes). Accepts the template (one row per participant) or a sign-up form export (one row per team, member email columns)
+      responses:
+        "200": { description: team/row summary with validation errors }
+        "400": { description: malformed CSV, missing columns, or invalid room }
+  /teams/import/commit:
+    post:
+      tags: [teams]
+      summary: Create teams and participants from CSV; optionally link every team to an existing room (roomId) or to a new draft room with starter categories (newRoomName)
+      responses:
+        "200": { description: created teams/participants, credentials, failed rows }
+        "400": { description: all-or-nothing rejected the file }
+  /teams/import/template:
+    get:
+      tags: [teams]
+      summary: Download the bulk team CSV template
+      responses:
+        "200": { description: CSV template }
 
   /rooms:
     get:

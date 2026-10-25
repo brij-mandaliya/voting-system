@@ -22,6 +22,8 @@ model User {
   role                Role     @default(PARTICIPANT)
   status              UserStat @default(ACTIVE)
   mustChangePassword  Boolean  @default(false)
+  /// false for accounts that only sign in with Google (their passwordHash is random and never shown)
+  hasPassword         Boolean  @default(true)
   teamId              String?
   team                Team?    @relation("orgTeam", fields: [teamId], references: [id])
   createdAt           DateTime @default(now())

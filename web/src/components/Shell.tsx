@@ -8,6 +8,7 @@ import {
   IconChart,
   IconClose,
   IconDashboard,
+  IconKey,
   IconLogout,
   IconMenu,
   IconRooms,
@@ -258,6 +259,14 @@ function UserPanel({
         <span className="block truncate text-[13px] font-medium text-ink-900">{user.name}</span>
         <span className="block text-xs text-ink-500">{role}</span>
       </span>
+      <NavLink
+        to="/change-password"
+        aria-label={user.hasPassword ? "Change password" : "Set a password"}
+        title={user.hasPassword ? "Change password" : "Set a password"}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <IconKey size={16} />
+      </NavLink>
       <button
         type="button"
         onClick={onLogout}

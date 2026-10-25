@@ -12,6 +12,13 @@ interface RealtimeCtx {
 
 const Ctx = createContext<RealtimeCtx | null>(null);
 
+/**
+ * Socket.IO needs a long-lived server. Hosts that can't run one (e.g. Netlify
+ * Functions) set VITE_REALTIME=off; the app then relies on the polling fallback
+ * that every live view already has.
+ */
+const REALTIME_ENABLED = import.meta.env.VITE_REALTIME !== "off";
+
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -20,6 +27,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const joined = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!REALTIME_ENABLED) {
+      setConnected(false);
+      socketRef.current = null;
+      return;
+    }
     socketRef.current = io("/", { withCredentials: true, transports: ["polling", "websocket"] });
     const socket = socketRef.current;
     let everConnected = false;
@@ -47,7 +59,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const join = (roomId: string) =>
     new Promise<boolean>((resolve) => {
       joined.current = roomId;
-      socketRef.current?.emit("room:join", { roomId }, (r: { ok: boolean }) => resolve(r?.ok ?? false));
+      const socket = socketRef.current;
+      if (!socket) return resolve(false);
+      socket.emit("room:join", { roomId }, (r: { ok: boolean }) => resolve(r?.ok ?? false));
     });
 
   const leave = (roomId: string) => {

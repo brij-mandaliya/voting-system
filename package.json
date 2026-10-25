@@ -12,7 +12,11 @@
     "dev:web": "npm run dev -w web",
     "db:up": "docker compose up -d postgres redis",
     "db:migrate": "npm run migrate -w server",
+    "db:migrate:deploy": "prisma migrate deploy --schema server/prisma/schema.prisma",
     "db:seed": "npm run seed -w server",
+    "db:bootstrap-admin": "tsx server/prisma/bootstrap-admin.ts",
+    "netlify:build": "prisma generate --schema server/prisma/schema.prisma && npm run build -w web",
+    "netlify:dev": "netlify dev",
     "build": "npm run build -w packages/shared && npm run build -w server && npm run build -w web",
     "test": "npm run test -w server",
     "test:e2e": "npm run e2e -w web"
@@ -22,6 +26,7 @@
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
-    "multer": "^2.5.0"
+    "multer": "^2.5.0",
+    "serverless-http": "^4.0.0"
   }
 }

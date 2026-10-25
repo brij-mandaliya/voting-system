@@ -36,7 +36,10 @@ jobs:
         run: npm ci
 
       - name: Type-check web
-        run: npx tsc -b -w web
+        run: npx tsc -b web
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema server/prisma/schema.prisma
 
       - name: Build all workspaces
         run: npm run build

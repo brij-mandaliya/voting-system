@@ -17,6 +17,7 @@ web/playwright-report/
 web/blob-report/
 .playwright-mcp/
 .vite/
+.netlify/
 
 # logs
 *.log

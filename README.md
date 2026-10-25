@@ -59,6 +59,56 @@ npm run dev -w web                # vite on :5173 (or build & serve web/dist sta
 The `server` service runs `prisma migrate deploy`, seeds (first boot), and starts
 the compiled API.
 
+## Deploy on Netlify
+
+The frontend is a static site; the Express API runs as a **single Netlify
+Function** (`netlify/functions/api.ts` reuses the real API via
+`serverless-http` — no business logic is duplicated). `netlify.toml` rewrites
+`/api/*` to that function so the browser talks to **one origin**, which is what
+the `SameSite=strict` session/CSRF cookies require.
+
+> ⚠️ **Serverless trade-offs.** Netlify Functions have no long-lived process, so:
+> - **No WebSockets.** Socket.IO can't run here; `netlify.toml` sets
+>   `VITE_REALTIME=off` and the live views use their 5–8s polling fallback.
+> - **Rate limiting / account lockout are best-effort** (per function instance),
+>   not global.
+> - **Timeouts (~10s free / ~26s Pro) and a ~6 MB request cap** apply. Very large
+>   XLSX exports or imports near the 5 MB limit may fail.
+> - **No background timers**, so the periodic expired-session cleanup doesn't run.
+
+1. **Push to GitHub**, then *Add new site → Import an existing project* in
+   Netlify. The build settings come from `netlify.toml`.
+2. **Add a Postgres database.** Use **Netlify DB** (`netlify db init`, powered by
+   Neon) or any pooled Postgres (Neon/Supabase). Copy its **pooled** connection
+   string.
+3. **Set environment variables** (Site configuration → Environment variables),
+   scoped to the **production** deploy context:
+
+   | Variable | Value | Notes |
+   |----------|-------|-------|
+   | `DATABASE_URL` | pooled Postgres URL | required |
+   | `NODE_ENV` | `production` | required |
+   | `WEB_ORIGIN` | `https://<your-site>.netlify.app` | must match the site URL |
+   | `DB_POOL_SIZE` | `1` | keep the per-instance pool tiny |
+   | `ADMIN_EMAIL` | `you@example.org` | creates the first admin |
+   | `ADMIN_PASSWORD` | *strong secret* | creates the first admin |
+   | `ADMIN_USERNAME` | `admin` | optional |
+
+4. **Deploy.** The build runs `prisma generate`, builds the web app, then
+   `scripts/netlify-db-setup.mjs` applies migrations and bootstraps the admin
+   (both skipped when `DATABASE_URL` is absent, so previews don't fail).
+
+Prisma is configured for the Lambda runtime via
+`binaryTargets = ["native", "rhel-openssl-3.0.x"]`. If the first deploy fails
+loading the Prisma engine, check that `node_modules/.prisma/**` is included
+(`included_files` in `netlify.toml`).
+
+To load demo data instead of a bare admin, run once against the database:
+
+```bash
+DATABASE_URL="<pooled-url>" npm run db:seed
+```
+
 ## Scoring model (enforced server-side)
 
 - Every round presents **one team**; eligible voters score it on the room's

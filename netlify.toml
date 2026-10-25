@@ -1,0 +1,41 @@
+# Netlify configuration for TeamVote.
+#
+# The React app is served statically from `web/dist`; the Express API runs as a
+# single Netlify Function (wrapped with serverless-http). `/api/*` is rewritten
+# to that function so the browser sees ONE origin — required for the
+# SameSite=strict session/CSRF cookies the app relies on.
+
+[build]
+  command = "npm ci && npm run netlify:build && node scripts/netlify-db-setup.mjs"
+  publish = "web/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Don't download Playwright browsers during the Netlify install.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+  # Socket.IO cannot run in a serverless function. Turn the client socket off so
+  # the app uses its built-in polling fallback instead of retrying forever.
+  VITE_REALTIME = "off"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # Keep these out of the esbuild bundle: express (per Netlify's guide),
+  # argon2 (native addon) and @prisma/client (native query engine).
+  external_node_modules = ["express", "argon2", "@prisma/client"]
+  # Ship the generated Prisma client + query engine with the function.
+  included_files = ["node_modules/.prisma/**"]
+
+# API -> function rewrite. With status 200 the function receives the ORIGINAL
+# path (/api/...), which is what the Express app is mounted on.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback (client-side routing). Must stay last.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

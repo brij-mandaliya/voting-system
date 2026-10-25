@@ -6,7 +6,9 @@
 # SameSite=strict session/CSRF cookies the app relies on.
 
 [build]
-  command = "npm ci && npm run netlify:build && node scripts/netlify-db-setup.mjs"
+  # `--include=dev` keeps tsc/vite installed even if NODE_ENV=production is set
+  # in the site environment, where npm would otherwise skip devDependencies.
+  command = "npm ci --include=dev && npm run netlify:build && node scripts/netlify-db-setup.mjs"
   publish = "web/dist"
 
 [build.environment]

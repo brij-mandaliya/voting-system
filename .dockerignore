@@ -1,0 +1,21 @@
+# Dependencies and build output are produced inside the image.
+node_modules
+**/node_modules
+
+# Never bake secrets or local env files into the image.
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local artefacts / VCS / tests.
+.git
+.gitignore
+**/dist
+**/test-results
+**/playwright-report
+**/.playwright-cli
+**/*.tsbuildinfo
+coverage
+docs
+README.md
